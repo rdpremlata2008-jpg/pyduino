@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydunio"
+version = "0.1.0"
+description = "Write Arduino programs in Python and compile them to Arduino C++."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+
+[tool.setuptools.packages.find]
+where = ["."]
