@@ -1,3 +1,4 @@
+
 """
 PyDunio Compiler
 
@@ -11,14 +12,10 @@ import ast
 class PyDunioCompiler:
 
     def __init__(self):
-
         self.setup = []
         self.loop = []
-
         self.variables = {}
-
         self.includes = set()
-
         self.indent = 0
 
     # ==========================================================
@@ -35,10 +32,7 @@ class PyDunioCompiler:
         self.includes = set()
 
         for node in tree.body:
-            self.compile_statement(
-                node,
-                self.loop
-            )
+            self.compile_statement(node, self.loop)
 
         return self.generate_cpp()
 
@@ -55,7 +49,6 @@ class PyDunioCompiler:
         if isinstance(node, ast.ImportFrom):
 
             if node.module == "pydunio":
-
                 return
 
             return
@@ -66,11 +59,7 @@ class PyDunioCompiler:
 
         if isinstance(node, ast.Assign):
 
-            self.compile_assignment(
-                node,
-                output
-            )
-
+            self.compile_assignment(node, output)
             return
 
         # --------------------------------------
@@ -79,14 +68,10 @@ class PyDunioCompiler:
 
         if isinstance(node, ast.Expr):
 
-            result = self.expression(
-                node.value
-            )
+            result = self.expression(node.value)
 
             if result:
-                output.append(
-                    result
-                )
+                output.append(result)
 
             return
 
@@ -96,11 +81,7 @@ class PyDunioCompiler:
 
         if isinstance(node, ast.While):
 
-            self.compile_while(
-                node,
-                output
-            )
-
+            self.compile_while(node, output)
             return
 
         # --------------------------------------
@@ -109,11 +90,7 @@ class PyDunioCompiler:
 
         if isinstance(node, ast.If):
 
-            self.compile_if(
-                node,
-                output
-            )
-
+            self.compile_if(node, output)
             return
 
         # --------------------------------------
@@ -121,7 +98,6 @@ class PyDunioCompiler:
         # --------------------------------------
 
         if isinstance(node, ast.Pass):
-
             return
 
         raise SyntaxError(
@@ -140,34 +116,22 @@ class PyDunioCompiler:
 
         target = node.targets[0]
 
-        if not isinstance(
-            target,
-            ast.Name
-        ):
+        if not isinstance(target, ast.Name):
             raise SyntaxError(
                 "Only simple variables are supported."
             )
 
         name = target.id
-
         value = node.value
 
         # --------------------------------------
         # Pin(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "Pin"
-        ):
+        if self.is_constructor(value, "Pin"):
 
-            pin = self.expression(
-                value.args[0]
-            )
-
-            mode = self.expression(
-                value.args[1]
-            )
+            pin = self.expression(value.args[0])
+            mode = self.expression(value.args[1])
 
             self.variables[name] = {
                 "type": "Pin",
@@ -184,14 +148,9 @@ class PyDunioCompiler:
         # LED(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "LED"
-        ):
+        if self.is_constructor(value, "LED"):
 
-            pin = self.expression(
-                value.args[0]
-            )
+            pin = self.expression(value.args[0])
 
             self.variables[name] = {
                 "type": "LED",
@@ -208,14 +167,9 @@ class PyDunioCompiler:
         # Buzzer(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "Buzzer"
-        ):
+        if self.is_constructor(value, "Buzzer"):
 
-            pin = self.expression(
-                value.args[0]
-            )
+            pin = self.expression(value.args[0])
 
             self.variables[name] = {
                 "type": "Buzzer",
@@ -232,10 +186,7 @@ class PyDunioCompiler:
         # Ultrasonic(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "Ultrasonic"
-        ):
+        if self.is_constructor(value, "Ultrasonic"):
 
             trigger = self.keyword_or_arg(
                 value,
@@ -249,18 +200,21 @@ class PyDunioCompiler:
                 1
             )
 
+            trigger_cpp = self.expression(trigger)
+            echo_cpp = self.expression(echo)
+
             self.variables[name] = {
                 "type": "Ultrasonic",
-                "trigger": self.expression(trigger),
-                "echo": self.expression(echo)
+                "trigger": trigger_cpp,
+                "echo": echo_cpp
             }
 
             self.setup.append(
-                f"pinMode({self.expression(trigger)}, OUTPUT);"
+                f"pinMode({trigger_cpp}, OUTPUT);"
             )
 
             self.setup.append(
-                f"pinMode({self.expression(echo)}, INPUT);"
+                f"pinMode({echo_cpp}, INPUT);"
             )
 
             return
@@ -269,14 +223,9 @@ class PyDunioCompiler:
         # Servo(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "Servo"
-        ):
+        if self.is_constructor(value, "Servo"):
 
-            pin = self.expression(
-                value.args[0]
-            )
+            pin = self.expression(value.args[0])
 
             self.includes.add(
                 "#include <Servo.h>"
@@ -297,10 +246,7 @@ class PyDunioCompiler:
         # HC05(...)
         # --------------------------------------
 
-        if self.is_constructor(
-            value,
-            "HC05"
-        ):
+        if self.is_constructor(value, "HC05"):
 
             rx = self.keyword_or_arg(
                 value,
@@ -321,29 +267,75 @@ class PyDunioCompiler:
                 default=9600
             )
 
+            rx_cpp = self.expression(rx)
+            tx_cpp = self.expression(tx)
+            baud_cpp = self.expression(baud)
+
             self.includes.add(
                 "#include <SoftwareSerial.h>"
             )
 
             self.variables[name] = {
                 "type": "HC05",
-                "rx": self.expression(rx),
-                "tx": self.expression(tx)
+                "rx": rx_cpp,
+                "tx": tx_cpp,
+                "baud": baud_cpp
             }
 
             self.setup.append(
-                f"{name}.begin({self.expression(baud)});"
+                f"{name}.begin({baud_cpp});"
             )
 
             return
 
         # --------------------------------------
+        # HC05.read() → String
+        # --------------------------------------
+        #
+        # This is handled here instead of changing
+        # compile_call(), as requested.
+        #
+        # Python:
+        #
+        # message = bluetooth.read()
+        #
+        # becomes:
+        #
+        # String message =
+        #     bluetooth.readStringUntil('\n');
+        # --------------------------------------
+
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Attribute)
+            and value.func.attr == "read"
+            and isinstance(value.func.value, ast.Name)
+        ):
+
+            object_name = value.func.value.id
+
+            if object_name in self.variables:
+
+                info = self.variables[object_name]
+
+                if info["type"] == "HC05":
+
+                    self.variables[name] = {
+                        "type": "variable"
+                    }
+
+                    output.append(
+                        f"String {name} = "
+                        f"{object_name}.readStringUntil('\\n');"
+                    )
+
+                    return
+
+        # --------------------------------------
         # Normal variable
         # --------------------------------------
 
-        expression = self.expression(
-            value
-        )
+        expression = self.expression(value)
 
         self.variables[name] = {
             "type": "variable"
@@ -359,9 +351,7 @@ class PyDunioCompiler:
 
     def compile_while(self, node, output):
 
-        condition = self.expression(
-            node.test
-        )
+        condition = self.expression(node.test)
 
         output.append(
             f"while ({condition}) {{"
@@ -382,9 +372,7 @@ class PyDunioCompiler:
                 "  " + line
             )
 
-        output.append(
-            "}"
-        )
+        output.append("}")
 
     # ==========================================================
     # IF
@@ -392,9 +380,7 @@ class PyDunioCompiler:
 
     def compile_if(self, node, output):
 
-        condition = self.expression(
-            node.test
-        )
+        condition = self.expression(node.test)
 
         output.append(
             f"if ({condition}) {{"
@@ -415,15 +401,11 @@ class PyDunioCompiler:
                 "  " + line
             )
 
-        output.append(
-            "}"
-        )
+        output.append("}")
 
         if node.orelse:
 
-            output.append(
-                "else {"
-            )
+            output.append("else {")
 
             else_body = []
 
@@ -440,9 +422,7 @@ class PyDunioCompiler:
                     "  " + line
                 )
 
-            output.append(
-                "}"
-            )
+            output.append("}")
 
     # ==========================================================
     # EXPRESSIONS
@@ -454,10 +434,7 @@ class PyDunioCompiler:
         # Constants
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.Constant
-        ):
+        if isinstance(node, ast.Constant):
 
             if node.value is True:
                 return "true"
@@ -468,10 +445,8 @@ class PyDunioCompiler:
             if node.value is None:
                 return "nullptr"
 
-            if isinstance(
-                node.value,
-                str
-            ):
+            if isinstance(node.value, str):
+
                 escaped = (
                     node.value
                     .replace("\\", "\\\\")
@@ -480,26 +455,20 @@ class PyDunioCompiler:
 
                 return f'"{escaped}"'
 
-            return str(
-                node.value
-            )
+            return str(node.value)
 
         # --------------------------------------
-        # Name
+        # Names
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.Name
-        ):
+        if isinstance(node, ast.Name):
 
             constants = {
                 "HIGH": "HIGH",
                 "LOW": "LOW",
                 "INPUT": "INPUT",
                 "OUTPUT": "OUTPUT",
-                "INPUT_PULLUP":
-                    "INPUT_PULLUP"
+                "INPUT_PULLUP": "INPUT_PULLUP"
             }
 
             return constants.get(
@@ -508,17 +477,12 @@ class PyDunioCompiler:
             )
 
         # --------------------------------------
-        # Comparison
+        # Comparisons
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.Compare
-        ):
+        if isinstance(node, ast.Compare):
 
-            left = self.expression(
-                node.left
-            )
+            left = self.expression(node.left)
 
             operators = {
                 ast.Eq: "==",
@@ -561,10 +525,7 @@ class PyDunioCompiler:
         # Binary operations
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.BinOp
-        ):
+        if isinstance(node, ast.BinOp):
 
             operators = {
                 ast.Add: "+",
@@ -601,39 +562,25 @@ class PyDunioCompiler:
         # Unary operations
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.UnaryOp
-        ):
+        if isinstance(node, ast.UnaryOp):
 
             operand = self.expression(
                 node.operand
             )
 
-            if isinstance(
-                node.op,
-                ast.USub
-            ):
+            if isinstance(node.op, ast.USub):
                 return f"-{operand}"
 
-            if isinstance(
-                node.op,
-                ast.Not
-            ):
+            if isinstance(node.op, ast.Not):
                 return f"!({operand})"
 
         # --------------------------------------
         # Function calls
         # --------------------------------------
 
-        if isinstance(
-            node,
-            ast.Call
-        ):
+        if isinstance(node, ast.Call):
 
-            return self.compile_call(
-                node
-            )
+            return self.compile_call(node)
 
         return ""
 
@@ -648,10 +595,7 @@ class PyDunioCompiler:
         # --------------------------------------
 
         if (
-            isinstance(
-                node.func,
-                ast.Name
-            )
+            isinstance(node.func, ast.Name)
             and node.func.id == "sleep"
         ):
 
@@ -666,10 +610,7 @@ class PyDunioCompiler:
         # --------------------------------------
 
         if (
-            isinstance(
-                node.func,
-                ast.Name
-            )
+            isinstance(node.func, ast.Name)
             and node.func.id == "blink"
         ):
 
@@ -678,9 +619,7 @@ class PyDunioCompiler:
             )
 
             duration = (
-                self.expression(
-                    node.args[1]
-                )
+                self.expression(node.args[1])
                 if len(node.args) > 1
                 else "500"
             )
@@ -716,17 +655,11 @@ class PyDunioCompiler:
         # Object.method(...)
         # --------------------------------------
 
-        if isinstance(
-            node.func,
-            ast.Attribute
-        ):
+        if isinstance(node.func, ast.Attribute):
 
             obj = node.func.value
 
-            if not isinstance(
-                obj,
-                ast.Name
-            ):
+            if not isinstance(obj, ast.Name):
                 return ""
 
             object_name = obj.id
@@ -866,13 +799,8 @@ class PyDunioCompiler:
 
                 if method == "distance":
 
-                    trigger = info[
-                        "trigger"
-                    ]
-
-                    echo = info[
-                        "echo"
-                    ]
+                    trigger = info["trigger"]
+                    echo = info["echo"]
 
                     return (
                         f"ultrasonicDistance("
@@ -914,21 +842,11 @@ class PyDunioCompiler:
     # HELPERS
     # ==========================================================
 
-    def is_constructor(
-        self,
-        node,
-        name
-    ):
+    def is_constructor(self, node, name):
 
         return (
-            isinstance(
-                node,
-                ast.Call
-            )
-            and isinstance(
-                node.func,
-                ast.Name
-            )
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
             and node.func.id == name
         )
 
@@ -959,7 +877,7 @@ class PyDunioCompiler:
         )
 
     # ==========================================================
-    # GENERATE C++
+    # GENERATE ARDUINO C++
     # ==========================================================
 
     def generate_cpp(self):
@@ -980,19 +898,23 @@ class PyDunioCompiler:
 
         lines.append("")
 
-        # Libraries
+        # --------------------------------------
+        # Includes
+        # --------------------------------------
+
         for include in sorted(
             self.includes
         ):
 
-            lines.append(
-                include
-            )
+            lines.append(include)
 
         if self.includes:
             lines.append("")
 
+        # --------------------------------------
         # Ultrasonic helper
+        # --------------------------------------
+
         ultrasonic_used = any(
             info["type"] == "Ultrasonic"
             for info in self.variables.values()
@@ -1034,13 +956,14 @@ class PyDunioCompiler:
                 "  return duration / 58;"
             )
 
-            lines.append(
-                "}"
-            )
+            lines.append("}")
 
             lines.append("")
 
+        # --------------------------------------
         # Servo objects
+        # --------------------------------------
+
         for name, info in self.variables.items():
 
             if info["type"] == "Servo":
@@ -1049,7 +972,10 @@ class PyDunioCompiler:
                     f"Servo {name};"
                 )
 
-        # HC05 objects
+        # --------------------------------------
+        # HC-05 objects
+        # --------------------------------------
+
         for name, info in self.variables.items():
 
             if info["type"] == "HC05":
@@ -1071,7 +997,10 @@ class PyDunioCompiler:
 
             lines.append("")
 
-        # setup
+        # --------------------------------------
+        # setup()
+        # --------------------------------------
+
         lines.append(
             "void setup() {"
         )
@@ -1082,13 +1011,14 @@ class PyDunioCompiler:
                 "  " + line
             )
 
-        lines.append(
-            "}"
-        )
+        lines.append("}")
 
         lines.append("")
 
-        # loop
+        # --------------------------------------
+        # loop()
+        # --------------------------------------
+
         lines.append(
             "void loop() {"
         )
@@ -1099,69 +1029,6 @@ class PyDunioCompiler:
                 "  " + line
             )
 
-        lines.append(
-            "}"
-        )
+        lines.append("}")
 
         return "\n".join(lines)
-
-
-### Test program
-
-
-from pydunio import *
-
-bluetooth = HC05(
-    rx=10,
-    tx=11,
-    baud=9600
-)
-
-while True:
-
-    if bluetooth.available():
-        message = bluetooth.read()
-        bluetooth.send(message)
-
-    sleep(10)
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="PyDunio - Python-first Arduino programming"
-    )
-
-    parser.add_argument(
-        "filename",
-        help="PyDunio Python file to compile"
-    )
-
-    parser.add_argument(
-        "--compile",
-        action="store_true",
-        help="Generate and compile Arduino C++"
-    )
-
-    parser.add_argument(
-        "--upload",
-        metavar="PORT",
-        help="Generate, compile and upload to Arduino"
-    )
-
-    args = parser.parse_args()
-
-    ino_file = generate(args.filename)
-
-    if args.compile:
-        compile_arduino(ino_file)
-
-    if args.upload:
-        compile_arduino(ino_file)
-        upload_arduino(
-            ino_file,
-            args.upload
-        )
-
-
-if __name__ == "__main__":
-    main()

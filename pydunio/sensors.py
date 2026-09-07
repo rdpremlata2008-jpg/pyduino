@@ -25,7 +25,6 @@ class Servo:
 
 
 class HC05:
-
     def __init__(self, rx, tx, baud=9600):
         self.rx = rx
         self.tx = tx
@@ -39,7 +38,6 @@ class HC05:
 
     def read(self):
         pass
-
 
 class Button:
 
