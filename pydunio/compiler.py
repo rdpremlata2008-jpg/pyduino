@@ -1104,3 +1104,64 @@ class PyDunioCompiler:
         )
 
         return "\n".join(lines)
+
+
+### Test program
+
+
+from pydunio import *
+
+bluetooth = HC05(
+    rx=10,
+    tx=11,
+    baud=9600
+)
+
+while True:
+
+    if bluetooth.available():
+        message = bluetooth.read()
+        bluetooth.send(message)
+
+    sleep(10)
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="PyDunio - Python-first Arduino programming"
+    )
+
+    parser.add_argument(
+        "filename",
+        help="PyDunio Python file to compile"
+    )
+
+    parser.add_argument(
+        "--compile",
+        action="store_true",
+        help="Generate and compile Arduino C++"
+    )
+
+    parser.add_argument(
+        "--upload",
+        metavar="PORT",
+        help="Generate, compile and upload to Arduino"
+    )
+
+    args = parser.parse_args()
+
+    ino_file = generate(args.filename)
+
+    if args.compile:
+        compile_arduino(ino_file)
+
+    if args.upload:
+        compile_arduino(ino_file)
+        upload_arduino(
+            ino_file,
+            args.upload
+        )
+
+
+if __name__ == "__main__":
+    main()
