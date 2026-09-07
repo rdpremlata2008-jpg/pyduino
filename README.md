@@ -6,7 +6,7 @@ PyDunio is a Python-first Arduino programming library and compiler. It allows yo
 
 Version
 
-0.1.0
+0.1.2
 
 PyDunio is currently in early development.
 
@@ -333,6 +333,8 @@ HC-05 TXD  → Arduino pin 10
 HC-05 RXD  → Arduino pin 11
 
 A voltage divider or suitable level shifter may be needed for the HC-05 RX input.
+
+you can also use it live and Serial.printin("x") 
 
 Button
 
