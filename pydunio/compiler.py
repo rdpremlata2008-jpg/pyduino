@@ -10,6 +10,43 @@ import ast
 
 
 class PyDunioCompiler:
+    # ==========================================================
+    # Parser
+    # ==========================================================
+    # pydunio/compiler.py
+import subprocess
+from pathlib import Path
+
+def compile_and_upload(py_script, board, port, upload):
+    ino_code = convert_to_arduino(py_script)
+
+    # Save .ino file
+    sketch_dir = Path("generated_sketch")
+    sketch_dir.mkdir(exist_ok=True)
+    ino_path = sketch_dir / "sketch.ino"
+    ino_path.write_text(ino_code)
+
+    # Compile
+    subprocess.run(["arduino-cli", "compile", "--fqbn", board, str(sketch_dir)], check=True)
+
+    # Upload if requested
+    if upload:
+        subprocess.run(["arduino-cli", "upload", "-p", port, "--fqbn", board, str(sketch_dir)], check=True)
+
+def convert_to_arduino(py_script):
+    # TODO: Parse PyDunio syntax properly
+    # For now, hardcoded blink example
+    return """\
+void setup() {
+  pinMode(13, OUTPUT);
+}
+void loop() {
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  delay(1000);
+}
+"""
 
     def __init__(self):
         self.setup = []
