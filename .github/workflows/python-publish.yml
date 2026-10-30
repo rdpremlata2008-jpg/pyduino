@@ -1,5 +1,5 @@
 
-name: Publish PySecrets
+name: Publish pydunio
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://pypi.org/project/pysecrets-easter/
+      url: https://pypi.org/project/pydunio/
 
     permissions:
       id-token: write
